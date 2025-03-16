@@ -4002,7 +4002,7 @@ class Trainer:
             )
 
         if self.processing_class is not None:
-            if self.processing_class.chat_template is None:
+            if not hasattr(self.processing_class, 'chat_template'):
                 self.processing_class.chat_template = self.processing_class.tokenizer.chat_template
             self.processing_class.save_pretrained(output_dir)
 
