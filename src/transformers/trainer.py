@@ -924,6 +924,9 @@ class Trainer:
             return dataset
         self._set_signature_columns_if_needed()
         signature_columns = self._signature_columns
+        # added 'pixel_values' for phi-3.5-vision model
+        if 'pixel_values' in dataset.column_names and 'pixel_values' not in signature_columns:
+            signature_columns.append('pixel_values')
 
         ignored_columns = list(set(dataset.column_names) - set(signature_columns))
         if len(ignored_columns) > 0:
@@ -3991,11 +3994,16 @@ class Trainer:
                 else:
                     torch.save(state_dict, os.path.join(output_dir, WEIGHTS_NAME))
         else:
+            # https://github.com/microsoft/PhiCookBook/issues/223
+            state_dict = self.model.state_dict()
+            state_dict = {k:v for k, v in state_dict.items() if "wte" not in k}
             self.model.save_pretrained(
                 output_dir, state_dict=state_dict, safe_serialization=self.args.save_safetensors
             )
 
         if self.processing_class is not None:
+            if self.processing_class.chat_template is None:
+                self.processing_class.chat_template = self.processing_class.tokenizer.chat_template
             self.processing_class.save_pretrained(output_dir)
 
         # Good practice: save your training arguments together with the trained model
