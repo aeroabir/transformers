@@ -928,6 +928,12 @@ class Trainer:
         if 'pixel_values' in dataset.column_names and 'pixel_values' not in signature_columns:
             signature_columns.append('pixel_values')
 
+        # add 'input_image_embeds', 'image_attention_mask' for phi-4-mm
+        phi4mm_columns = ['input_image_embeds', 'image_attention_mask', 'input_mode']
+        for col in phi4mm_columns:
+            if col in dataset.column_names and col not in signature_columns:
+                signature_columns.append(col)
+
         ignored_columns = list(set(dataset.column_names) - set(signature_columns))
         if len(ignored_columns) > 0:
             dset_description = "" if description is None else f"in the {description} set"
@@ -1017,6 +1023,10 @@ class Trainer:
             train_dataset = self._remove_unused_columns(train_dataset, description="training")
         else:
             data_collator = self._get_collator_with_removed_columns(data_collator, description="training")
+
+        # 'input_image_embeds', 'image_attention_mask' are present here
+        # print("get_train_dataloader: Abir")
+        # print(train_dataset)
 
         dataloader_params = {
             "batch_size": self._train_batch_size,
@@ -3723,6 +3733,9 @@ class Trainer:
             loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
             return loss_mb.reduce_mean().detach().to(self.args.device)
 
+        # print("training step: Abir")
+        # print(inputs.keys())
+
         with self.compute_loss_context_manager():
             loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
 
@@ -5232,6 +5245,10 @@ class Trainer:
                 batch_samples += [next(epoch_iterator)]
             except StopIteration:
                 break
+
+        # print("'input_image_embeds', 'image_attention_mask' NOT present here!")
+        # print("get_batch_samples: Abir")
+        # print(batch_samples[0].keys())
 
         if len(batch_samples) > 0 and "labels" in batch_samples[0]:
             # For now we don't support object detection
